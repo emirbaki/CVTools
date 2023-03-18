@@ -1,0 +1,18 @@
+<RCC>
+  <qresource prefix="QTDeneme">
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/emblems/16/vcs-added.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/emblems/16/emblem-checked.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/actions/16/document-export.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/emblems/16/vcs-removed.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/categories/32/applications-development.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/categories/32/applications-engineering.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/apps/16/system-file-manager.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/index.theme</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/emotes/22/face-angel.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/actions/16/document-open.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/actions/16/document-open-data.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/actions/16/document-open-folder.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/actions/16/document-open-recent.svg</file>
+    <file>C:/Users/emir-/OneDrive/Masaüstü/breeze-icons-master/icons/actions/16/document-open-remote.svg</file>
+  </qresource>
+</RCC>
