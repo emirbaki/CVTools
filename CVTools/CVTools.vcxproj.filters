@@ -7,7 +7,7 @@
     <ClCompile Include="cvtools.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="cvtoolsutilities.cpp">
+    <ClCompile Include="utilities.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="scannode.cpp">
@@ -17,6 +17,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="edge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="objectdetector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -64,6 +67,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="edge.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="objectdetector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utilities.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

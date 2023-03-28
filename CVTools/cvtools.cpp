@@ -12,18 +12,9 @@
 #include <iostream>
 
 
-#include <opencv2/core.hpp>
-#include <opencv2/videoio.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/objdetect.hpp>
-
 #include <stdio.h>
-#include "graphwidget.h"
-#include "scannode.h"
 
-using namespace cv;
-using namespace std;
+
 
 CVToolsWindow::CVToolsWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -51,6 +42,8 @@ CVToolsWindow::CVToolsWindow(QWidget *parent)
     graphWidget->setParent(ui.scanningTab);
     statusBar()->setEnabled(true);
     
+    objDetector = new ObjectDetector;
+    objDetector->ui = &ui;
 
     connectEvents();
 }
@@ -58,39 +51,9 @@ CVToolsWindow::CVToolsWindow(QWidget *parent)
 
 CVToolsWindow::~CVToolsWindow()
 {
-
+    delete objDetector;
 }
 
-void matDeleter(void* mat) { delete static_cast<cv::Mat*>(mat); }
-
-static QImage imageFromMat(cv::Mat const& src) {
-    //Q_ASSERT(src.type() == CV_8UC3);
-    //cv::Mat* mat = new cv::Mat(src.rows, src.cols, src.type());
-    //cvtColor(src, *mat, COLOR_BGR2RGB);
-    /*return QImage((uchar*)mat->data, mat->cols, mat->rows, mat->step,
-        QImage::Format_RGB888, &matDeleter, mat);*/
-    if (src.channels() == 3) {
-        QImage a((uchar*)src.data, src.cols, src.rows, src.step,
-            QImage::Format_RGB888);
-        a.rgbSwap();
-        return a;
-    }
-    else if (src.channels() == 1) {
-        return QImage((uchar*)src.data, src.cols, src.rows, src.step,
-            QImage::Format_Indexed8);
-
-    }
-}
-
-static cv::Scalar randomScalar() {
-    static cv::RNG rng(12345);
-    return cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
-}
-
-static QPixmap pixmapFromMat(const cv::Mat& src) {
-    QImage image(imageFromMat(src));
-    return QPixmap::fromImage(image);
-}
 static void initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode acceptMode)
 {
     static bool firstDialog = true;
@@ -113,6 +76,18 @@ static void initializeImageFileDialog(QFileDialog& dialog, QFileDialog::AcceptMo
     if (acceptMode == QFileDialog::AcceptSave)
         dialog.setDefaultSuffix("jpg");
 }
+static void initializeClassifierFileDialog(QFileDialog& dialog, QFileDialog::AcceptMode acceptMode)
+{
+    static bool firstDialog = true;
+
+    if (firstDialog) {
+        firstDialog = false;
+        const QStringList desktop= QStandardPaths::standardLocations(QStandardPaths::DesktopLocation);
+        dialog.setDirectory(desktop.isEmpty() ? QDir::currentPath() : desktop.last());
+    }
+    dialog.setNameFilter("XML (*.xml)");
+    dialog.setFileMode(QFileDialog::AnyFile);
+}
 
 bool CVToolsWindow::loadFile(const QString& fileName)
 {
@@ -132,6 +107,11 @@ bool CVToolsWindow::loadFile(const QString& fileName)
         QImage instance = newImage.copy();
         graphWidget->setPicture(instance);
     }
+    else if (ui.objectDetectorTab->isVisible()) {
+        ui.objDetector_output->setPixmap(QPixmap::fromImage(newImage));
+        QImage instance = newImage.copy();
+        objDetector->initMat(instance);
+    }
 
     setWindowFilePath(fileName);
 
@@ -144,6 +124,29 @@ bool CVToolsWindow::loadFile(const QString& fileName)
     return true;
 }
 
+bool CVToolsWindow::loadClassifierFile(const QString& fileName)
+{
+    objDetector->addNewClassifier(fileName);
+   /* QImageReader reader(fileName);
+    reader.setAutoTransform(true);
+    const QImage newImage = reader.read();
+    if (newImage.isNull()) {
+        QMessageBox::information(this, QGuiApplication::applicationDisplayName(),
+            tr("Cannot load %1: %2")
+            .arg(QDir::toNativeSeparators(fileName), reader.errorString()));
+        return false;
+    }*/
+
+    setWindowFilePath(fileName);
+
+    const QString description = image.colorSpace().isValid()
+        ? image.colorSpace().description() : tr("unknown");
+    const QString message = tr("Opened \"%1\", %2x%3, Depth: %4 (%5)")
+        .arg(QDir::toNativeSeparators(fileName)).arg(image.width()).arg(image.height())
+        .arg(image.depth()).arg(description);
+    statusBar()->showMessage(message);
+    return true;
+}
 
 void CVToolsWindow::saveAs()
 {
@@ -180,24 +183,12 @@ void CVToolsWindow::copy()
 #endif // !QT_NO_CLIPBOARD
 }
 
-#ifndef QT_NO_CLIPBOARD
-static QImage clipboardImage()
-{
-    if (const QMimeData* mimeData = QGuiApplication::clipboard()->mimeData()) {
-        if (mimeData->hasImage()) {
-            const QImage image = qvariant_cast<QImage>(mimeData->imageData());
-            if (!image.isNull())
-                return image;
-        }
-    }
-    return QImage();
-}
-#endif // !QT_NO_CLIPBOARD
+
 
 void CVToolsWindow::paste()
 {
 #ifndef QT_NO_CLIPBOARD
-    const QImage newImage = clipboardImage();
+    const QImage newImage = CVToolsUtility::clipboardImage();
     if (newImage.isNull()) {
         statusBar()->showMessage(tr("No image in clipboard"));
     }
@@ -253,7 +244,18 @@ void CVToolsWindow::about()
             "shows how to use QPainter to print an image.</p>"));
 }
 
+void CVToolsWindow::openClassifierFile()
+{
+    QFileDialog dialog(this, tr("Select a Classifier File"));
+    initializeClassifierFileDialog(dialog, QFileDialog::AcceptOpen);
 
+    while (dialog.exec() == QDialog::Accepted && !loadClassifierFile(dialog.selectedFiles().constFirst())) {}
+}
+
+void CVToolsWindow::scanImageWithClassifiers()
+{
+    objDetector->scanImageWithClassifiers();
+}
 
 void CVToolsWindow::open()
 {
@@ -268,10 +270,15 @@ void CVToolsWindow::connectEvents()
 
     connect(ui.openToolBox, &QToolButton::released, this, &CVToolsWindow::open);
     connect(ui.openToolBox_scan, &QToolButton::released, this, &CVToolsWindow::open);
+    connect(ui.openToolBox_objectDetector, &QToolButton::released, this, &CVToolsWindow::open);
+
+    connect(ui.addCascade_btn, &QToolButton::released, this, &CVToolsWindow::addClassifier);
+    connect(ui.removeCascade_btn, &QToolButton::released, this, &CVToolsWindow::removeClassifier);
+    connect(ui.startDetection_btn, &QToolButton::released, this, &CVToolsWindow::scanImageWithClassifiers);
 
     connect(ui.saveOutput_btn, &QToolButton::released, this, &CVToolsWindow::saveAs);
     connect(ui.addPointer_btn, &QToolButton::released, this, &CVToolsWindow::addNode);
-    connect(ui.scanPermit_btn, &QToolButton::released, this, &CVToolsWindow::scanImage);
+    connect(ui.scanPermit_btn, &QToolButton::released, this, &CVToolsWindow::warpImage);
 
     connect(ui.maskViewButton, &QToolButton::released, this, &CVToolsWindow::setMaskView);
     connect(ui.hsvViewButton, &QToolButton::released, this, &CVToolsWindow::setHSVView);
@@ -359,13 +366,7 @@ bool CVToolsWindow::saveFile(const QString& fileName)
     statusBar()->showMessage(message);
     return true;
 }
-Mat qimage2mat(const QImage& qimage) {
-    cv::Mat mat = cv::Mat(qimage.height(), qimage.width(), CV_8UC4, (uchar*)qimage.bits(), qimage.bytesPerLine());
-    cv::Mat mat2 = cv::Mat(mat.rows, mat.cols, CV_8UC3);
-    int from_to[] = { 0,0,  1,1,  2,2 };
-    cv::mixChannels(&mat, 1, &mat2, 1, from_to, 3);
-    return mat2;
-};
+
 
 void CVToolsWindow::setImage(const QImage& newImage)
 {
@@ -384,7 +385,7 @@ void CVToolsWindow::setImage(const QImage& newImage)
     if (!ui.actionFit_the_Window->isChecked())
         ui.imageLabel->adjustSize();
 
-    normalImage = qimage2mat(image);
+    normalImage = CVToolsUtility::qimage2mat(image);
     initializeViews();
 }
 
@@ -452,7 +453,7 @@ void CVToolsWindow::changeToMaskView()
     Scalar maxLevels(hmax, smax, vmax);
     inRange(imageHSV, minLevels, maxLevels, mask);*/
 
-    ui.imageLabel->setPixmap(pixmapFromMat(mask));
+    ui.imageLabel->setPixmap(CVToolsUtility::pixmapFromMat(mask));
     //cv::waitKey(10);
 }
 
@@ -460,7 +461,7 @@ void CVToolsWindow::changeToHSVView()
 {
 
 
-    ui.imageLabel->setPixmap(pixmapFromMat(imageHSV));
+    ui.imageLabel->setPixmap(CVToolsUtility::pixmapFromMat(imageHSV));
 }
 
 void CVToolsWindow::changeToNormalView()
@@ -476,7 +477,7 @@ void CVToolsWindow::updateMaskHSV() {
     Scalar maxLevels(hmax, smax, vmax);
     inRange(imageHSV, minLevels, maxLevels, mask);
 
-    ui.imageLabel->setPixmap(pixmapFromMat(mask));
+    ui.imageLabel->setPixmap(CVToolsUtility::pixmapFromMat(mask));
     waitKey(0);
 }
 
@@ -529,7 +530,18 @@ void CVToolsWindow::addNode()
     graphWidget->handleEdges();
 }
 
-void CVToolsWindow::scanImage()
+void CVToolsWindow::warpImage()
 {
     graphWidget->warpPerspective(ui.outputImage_scn);
+}
+
+void CVToolsWindow::addClassifier()
+{
+    openClassifierFile();
+
+}
+
+void CVToolsWindow::removeClassifier()
+{
+    objDetector->removeClassifier();
 }

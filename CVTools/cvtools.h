@@ -2,18 +2,15 @@
 
 #include <QtWidgets/QMainWindow>
 #include "ui_qtcvtools.h"
-#include <QtWidgets>
-
-#include <opencv2/core.hpp>
-#include <opencv2/videoio.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/objdetect.hpp>
+#include "utilities.h"
 
 #include <stdio.h>
 #include "graphwidget.h"
+#include "scannode.h"
+#include "objectdetector.h"
 
-using namespace cv;
+
+
 
 class CVToolsWindow : public QMainWindow
 {
@@ -22,6 +19,7 @@ class CVToolsWindow : public QMainWindow
 public:
     CVToolsWindow(QWidget *parent = nullptr);
     bool loadFile(const QString&);
+    bool loadClassifierFile(const QString&);
     ~CVToolsWindow();
 
 private slots:
@@ -68,9 +66,15 @@ private:
 
     void addNode();
 
-    void scanImage();
+    void warpImage();
 
-    QTimer *timer = new QTimer(this);
+    void addClassifier();
+    void removeClassifier();
+    void openClassifierFile();
+    void scanImageWithClassifiers();
+
+    ObjectDetector* objDetector;
+
     QImage image;
     Mat normalImage, imageHSV, mask;
     GraphWidget* graphWidget;

@@ -1,6 +1,5 @@
 #include "cvtools.h"
 #include <QtWidgets/QApplication>
-#include "GraphWidget.h"
 
 int main(int argc, char *argv[])
 {

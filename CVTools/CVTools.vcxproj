@@ -103,20 +103,23 @@
   <ItemGroup>
     <ClCompile Include="edge.cpp" />
     <ClCompile Include="graphwidget.cpp" />
+    <ClCompile Include="objectdetector.cpp" />
     <ClCompile Include="scannode.cpp" />
     <QtRcc Include="qtcvtools.qrc" />
     <QtUic Include="qtcvtools.ui" />
     <QtMoc Include="cvtools.h" />
     <ClCompile Include="cvtools.cpp" />
-    <ClCompile Include="cvtoolsutilities.cpp" />
+    <ClCompile Include="utilities.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="utilities.h" />
     <QtMoc Include="graphwidget.h" />
     <ClInclude Include="edge.h" />
+    <ClInclude Include="objectdetector.h" />
     <ClInclude Include="scannode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
